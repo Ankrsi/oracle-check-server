@@ -1,0 +1,31 @@
+name: A1 capacity checker
+
+on:
+  schedule:
+    - cron: "0 */6 * * *" # start a new run every 6 hours
+  workflow_dispatch: # lets you start it manually from the Actions tab
+
+concurrency:
+  group: a1-checker
+  cancel-in-progress: true # a new run replaces the old one, so it never overlaps
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: node a1-checker.js
+        env:
+          MAX_MINUTES: 350
+          OCI_USER: ${{ secrets.OCI_USER }}
+          OCI_TENANCY: ${{ secrets.OCI_TENANCY }}
+          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_REGION: ap-hyderabad-1
+          OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

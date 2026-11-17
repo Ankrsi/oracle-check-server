@@ -1,0 +1,18 @@
+{
+  "name": "oci-a1-checker",
+  "version": "1.0.0",
+  "description": "Polls OCI every 3s for VM.Standard.A1.Flex capacity and optionally auto-launches",
+  "main": "a1-checker.js",
+  "scripts": {
+    "start": "node a1-checker.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "oci-common": "^2.147.0",
+    "oci-core": "^2.147.0",
+    "oci-identity": "^2.147.0"
+  },
+  "license": "MIT"
+}
