@@ -27,5 +27,3 @@ jobs:
           OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
           OCI_REGION: ap-hyderabad-1
           OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

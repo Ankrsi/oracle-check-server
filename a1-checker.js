@@ -28,20 +28,6 @@ function getProvider() {
   return new common.ConfigFileAuthenticationDetailsProvider();
 }
 
-async function telegram(text) {
-  const { TELEGRAM_BOT_TOKEN: token, TELEGRAM_CHAT_ID: chat } = process.env;
-  if (!token || !chat) return;
-  try {
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chat, text }),
-    });
-  } catch (err) {
-    console.log(`Telegram failed: ${err.message}`);
-  }
-}
-
 async function main() {
   const provider = getProvider();
   const compartmentId = provider.getTenantId();
@@ -84,7 +70,12 @@ async function main() {
           console.log(`[${time()}] ${where}: ${s.availabilityStatus}`);
           if (ok && !wasAvailable[where]) {
             console.log(`\x07\n✅ AVAILABLE in ${where}\n`);
-            await telegram(`✅ ${SHAPE} ${OCPUS} OCPU / ${MEMORY_GB} GB AVAILABLE in ${where}. Launch it now!`);
+            const msg = `✅ ${SHAPE} ${OCPUS} OCPU / ${MEMORY_GB} GB AVAILABLE in ${where}. Launch it now!`;
+            // On GitHub: fail the run on purpose, so GitHub emails you.
+            if (process.env.GITHUB_ACTIONS) {
+              console.error(`::error::${msg}`);
+              process.exit(1);
+            }
           }
           wasAvailable[where] = ok;
         }
