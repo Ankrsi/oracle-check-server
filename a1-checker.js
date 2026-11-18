@@ -7,14 +7,20 @@ const core = require("oci-core");
 const identity = require("oci-identity");
 
 const SHAPE = "VM.Standard.A1.Flex";
-const OCPUS = 4;
-const MEMORY_GB = 24;
+const SIZES = [
+  { ocpus: 1, memoryInGBs: 6 },
+  { ocpus: 2, memoryInGBs: 12 },
+  { ocpus: 3, memoryInGBs: 18 },
+  { ocpus: 4, memoryInGBs: 24 },
+];
 const INTERVAL_MS = 5000;
 const REGIONS = ["ap-hyderabad-1", "ap-mumbai-1"]; // all Indian regions
 const MAX_MINUTES = Number(process.env.MAX_MINUTES || 0); // 0 = run forever
 
 common.CircuitBreaker.EnableGlobalCircuitBreaker = false;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const sizeLabel = (c) => `${c.ocpus}/${c.memoryInGBs}GB`;
+const icon = (status) => (status === "AVAILABLE" ? "✅" : status === "OUT_OF_HOST_CAPACITY" ? "❌" : status);
 const time = () => new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" });
 
 function getProvider() {
@@ -47,7 +53,8 @@ async function main() {
     }
   }
   if (!targets.length) throw new Error("No regions could be checked.");
-  console.log(`Checking ${SHAPE} (${OCPUS} OCPU / ${MEMORY_GB} GB) in: ${targets.map((t) => t.ad).join(", ")}\n`);
+  console.log(`Checking ${SHAPE} sizes ${SIZES.map(sizeLabel).join(", ")} in: ${targets.map((t) => t.ad).join(", ")}`);
+  console.log(`✅ = available, ❌ = out of capacity\n`);
 
   const stopAt = MAX_MINUTES ? Date.now() + MAX_MINUTES * 60000 : Infinity;
   const wasAvailable = {}; // only message once each time an AD becomes available
@@ -67,28 +74,30 @@ async function main() {
           createComputeCapacityReportDetails: {
             compartmentId,
             availabilityDomain: ad,
-            shapeAvailabilities: [
-              { instanceShape: SHAPE, instanceShapeConfig: { ocpus: OCPUS, memoryInGBs: MEMORY_GB } },
-            ],
+            shapeAvailabilities: SIZES.map((c) => ({ instanceShape: SHAPE, instanceShapeConfig: c })),
           },
         });
-        for (const s of resp.computeCapacityReport.shapeAvailabilities) {
+        const results = [];
+        resp.computeCapacityReport.shapeAvailabilities.forEach((s, i) => {
+          const size = sizeLabel(s.instanceShapeConfig || SIZES[i] || {});
           const where = `${ad} ${s.faultDomain || ""}`.trim();
+          const key = `${where} ${size}`;
           const ok = s.availabilityStatus === "AVAILABLE";
-          parts.push(`${where}: ${s.availabilityStatus}`);
+          results.push(`${size} ${icon(s.availabilityStatus)}`);
           if (ok) found++;
           else notFound++;
-          if (ok && !wasAvailable[where]) {
-            console.log(`\x07\n✅ AVAILABLE in ${where}\n`);
-            const msg = `✅ ${SHAPE} ${OCPUS} OCPU / ${MEMORY_GB} GB AVAILABLE in ${where}. Launch it now!`;
+          if (ok && !wasAvailable[key]) {
+            console.log(`\x07\n✅ ${size} AVAILABLE in ${where}\n`);
+            const msg = `✅ ${SHAPE} ${s.instanceShapeConfig?.ocpus ?? ""} OCPU / ${s.instanceShapeConfig?.memoryInGBs ?? ""} GB AVAILABLE in ${where}. Launch it now!`;
             // On GitHub: fail the run on purpose, so GitHub emails you.
             if (process.env.GITHUB_ACTIONS) {
               console.error(`::error::${msg}`);
               process.exit(1);
             }
           }
-          wasAvailable[where] = ok;
-        }
+          wasAvailable[key] = ok;
+        });
+        parts.push(`${ad.split(":").pop()}: ${results.join("  ")}`);
       } catch (err) {
         parts.push(`${ad}: Error ${err.message}`);
       }
