@@ -56,6 +56,7 @@ async function main() {
   let found = 0;
   let notFound = 0;
   let lastStatus = "";
+  let lastPrint = 0;
 
   while (Date.now() < stopAt) {
     checks++;
@@ -98,9 +99,10 @@ async function main() {
     if (process.stdout.isTTY) {
       // Terminal: overwrite the same line
       process.stdout.write(`\r\x1b[K[${time()}] #${checks}  ${status}  | Found: ${found}  Not found: ${notFound}`);
-    } else if (status !== lastStatus) {
-      // GitHub log: print only when the status changes
-      console.log(`[${time()}] ${status}`);
+    } else if (status !== lastStatus || Date.now() - lastPrint >= 5 * 60000) {
+      // GitHub log: print when the status changes, or every 5 minutes
+      console.log(`[${time()}] #${checks}  ${status}  | Found: ${found}  Not found: ${notFound}`);
+      lastPrint = Date.now();
     }
     lastStatus = status;
     await sleep(INTERVAL_MS);
