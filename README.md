@@ -1,6 +1,6 @@
 # OCI A1.Flex capacity checker
 
-Checks every 3 seconds whether Oracle Cloud has capacity for `VM.Standard.A1.Flex`
+Checks every 5 seconds whether Oracle Cloud has capacity for `VM.Standard.A1.Flex`
 (4 OCPU / 24 GB) in your region, and beeps when it finds some.
 
 ## Setup

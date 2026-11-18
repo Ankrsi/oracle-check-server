@@ -1,4 +1,4 @@
-// Checks every 3 seconds if Oracle Cloud has capacity for VM.Standard.A1.Flex.
+// Checks every 5 seconds if Oracle Cloud has capacity for VM.Standard.A1.Flex.
 // Locally: uses ~/.oci/config. On GitHub Actions: uses OCI_* secrets (see README).
 // Run: node a1-checker.js
 
@@ -9,7 +9,7 @@ const identity = require("oci-identity");
 const SHAPE = "VM.Standard.A1.Flex";
 const OCPUS = 4;
 const MEMORY_GB = 24;
-const INTERVAL_MS = 3000;
+const INTERVAL_MS = 5000;
 const REGIONS = ["ap-hyderabad-1", "ap-mumbai-1"]; // all Indian regions
 const MAX_MINUTES = Number(process.env.MAX_MINUTES || 0); // 0 = run forever
 
@@ -99,8 +99,8 @@ async function main() {
     if (process.stdout.isTTY) {
       // Terminal: overwrite the same line
       process.stdout.write(`\r\x1b[K[${time()}] #${checks}  ${status}  | Found: ${found}  Not found: ${notFound}`);
-    } else if (status !== lastStatus || Date.now() - lastPrint >= 5 * 60000) {
-      // GitHub log: print when the status changes, or every 5 minutes
+    } else if (status !== lastStatus || Date.now() - lastPrint >= 5000) {
+      // GitHub log: print when the status changes, or every 5 seconds
       console.log(`[${time()}] #${checks}  ${status}  | Found: ${found}  Not found: ${notFound}`);
       lastPrint = Date.now();
     }
