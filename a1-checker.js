@@ -99,8 +99,8 @@ async function main() {
     if (process.stdout.isTTY) {
       // Terminal: overwrite the same line
       process.stdout.write(`\r\x1b[K[${time()}] #${checks}  ${status}  | Found: ${found}  Not found: ${notFound}`);
-    } else if (status !== lastStatus || Date.now() - lastPrint >= 5000) {
-      // GitHub log: print when the status changes, or every 5 seconds
+    } else if (status !== lastStatus || Date.now() - lastPrint >= 60000) {
+      // GitHub log: print when the status changes, or once a minute
       console.log(`[${time()}] #${checks}  ${status}  | Found: ${found}  Not found: ${notFound}`);
       lastPrint = Date.now();
     }
