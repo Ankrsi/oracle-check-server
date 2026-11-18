@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "0 */6 * * *" # start a new run every 6 hours
   workflow_dispatch: # lets you start it manually from the Actions tab
+    inputs:
+      test_alert:
+        description: "Send a test alert email (fails the run on purpose)"
+        type: boolean
+        default: false
 
 concurrency:
   group: a1-checker
@@ -18,6 +23,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Test alert
+        if: ${{ inputs.test_alert }}
+        run: |
+          echo "::error::TEST ALERT - if you got this email, alerts are working."
+          exit 1
       - run: npm ci
       - run: node a1-checker.js
         env:
