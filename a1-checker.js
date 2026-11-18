@@ -52,7 +52,14 @@ async function main() {
   const stopAt = MAX_MINUTES ? Date.now() + MAX_MINUTES * 60000 : Infinity;
   const wasAvailable = {}; // only message once each time an AD becomes available
 
+  let checks = 0;
+  let found = 0;
+  let notFound = 0;
+  let lastStatus = "";
+
   while (Date.now() < stopAt) {
+    checks++;
+    const parts = [];
     for (const { compute, ad } of targets) {
       try {
         const resp = await compute.createComputeCapacityReport({
@@ -67,7 +74,9 @@ async function main() {
         for (const s of resp.computeCapacityReport.shapeAvailabilities) {
           const where = `${ad} ${s.faultDomain || ""}`.trim();
           const ok = s.availabilityStatus === "AVAILABLE";
-          console.log(`[${time()}] ${where}: ${s.availabilityStatus}`);
+          parts.push(`${where}: ${s.availabilityStatus}`);
+          if (ok) found++;
+          else notFound++;
           if (ok && !wasAvailable[where]) {
             console.log(`\x07\n✅ AVAILABLE in ${where}\n`);
             const msg = `✅ ${SHAPE} ${OCPUS} OCPU / ${MEMORY_GB} GB AVAILABLE in ${where}. Launch it now!`;
@@ -80,12 +89,23 @@ async function main() {
           wasAvailable[where] = ok;
         }
       } catch (err) {
-        console.log(`[${time()}] Error: ${err.message}`);
+        parts.push(`${ad}: Error ${err.message}`);
       }
     }
+
+    // Show only the latest status
+    const status = parts.join(" | ");
+    if (process.stdout.isTTY) {
+      // Terminal: overwrite the same line
+      process.stdout.write(`\r\x1b[K[${time()}] #${checks}  ${status}  | Found: ${found}  Not found: ${notFound}`);
+    } else if (status !== lastStatus) {
+      // GitHub log: print only when the status changes
+      console.log(`[${time()}] ${status}`);
+    }
+    lastStatus = status;
     await sleep(INTERVAL_MS);
   }
-  console.log("Time limit reached, stopping.");
+  console.log(`\nTime limit reached. Checks: ${checks}  Found: ${found}  Not found: ${notFound}`);
 }
 
 main().catch((err) => {
